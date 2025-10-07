@@ -1,0 +1,13 @@
+{
+  "log_path": "/tmp/daemon.log",
+  "sleep_interval": 10,
+  "kill_delay": 30,
+  "root_dir": "/Users/andy/Code/lincaiyong/daemon/example",
+  "workers": [],
+  "nginx_conf_d_dir": "",
+  "nginx_conf_file": "",
+  "enable_https": false,
+  "domain": "",
+  "secret_token": "",
+  "auth_apps": []
+}
