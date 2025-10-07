@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/lincaiyong/arg"
+	"github.com/lincaiyong/log"
 	"os"
+	"path"
 	"runtime"
 )
 
@@ -33,7 +35,7 @@ type Config struct {
 func loadConfig() error {
 	arg.Parse()
 	// config.json
-	if configFile := arg.KeyValueArg("config", ""); configFile != "" {
+	if configFile := arg.KeyValueArg("config", "daemon.json"); configFile != "" {
 		if b, err := os.ReadFile(configFile); err != nil {
 			return fmt.Errorf("fail to read config file: %v", err)
 		} else {
@@ -81,10 +83,18 @@ func loadConfig() error {
 		config.AuthAppMap[app] = true
 	}
 	var err error
-	for _, dir := range []string{config.RootDir, config.BinDir, config.AppDir, config.NginxConfDDir, config.NginxConfFile} {
+	hasFileErr := false
+	for _, dir := range []string{
+		config.RootDir, config.BinDir, config.AppDir, config.NginxConfDDir, config.NginxConfFile,
+		path.Join(config.RootDir, "Makefile"),
+	} {
 		if _, err = os.Stat(dir); err != nil {
-			return fmt.Errorf("%s does not exist", dir)
+			hasFileErr = true
+			log.ErrorLog("%s does not exist", dir)
 		}
+	}
+	if hasFileErr {
+		return errors.New("some file or directory are required")
 	}
 	if config.EnableHttps {
 		if _, err = os.Stat(config.SSLDir); err != nil {
