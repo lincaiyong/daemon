@@ -1,6 +1,6 @@
 {
   "log_path": "/tmp/daemon.log",
-  "sleep_interval": 10,
+  "sleep_interval": 1,
   "kill_delay": 30,
   "root_dir": "/Users/andy/Code/lincaiyong/daemon/example",
   "workers": [],

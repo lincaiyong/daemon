@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/lincaiyong/daemon/internal"
 	"github.com/lincaiyong/log"
@@ -59,6 +60,12 @@ func collectRunningApps() (map[string]*RunningApp, error) {
 			updateRunningApps(result, name, pid, port, modTime)
 		}
 	}
+	m := map[string]string{}
+	for name, v := range result {
+		m[name] = v.String()
+	}
+	b, _ := json.Marshal(m)
+	log.InfoLog("collected running apps: %s", string(b))
 	return result, nil
 }
 
@@ -81,6 +88,12 @@ func collectBinaryApps() (map[string]*App, error) {
 			}
 		}
 	}
+	m := map[string]string{}
+	for name, v := range result {
+		m[name] = v.String()
+	}
+	b, _ := json.Marshal(m)
+	log.InfoLog("collected binary apps: %s", string(b))
 	return result, nil
 }
 
@@ -127,13 +140,27 @@ func launchNewApps(binaryApps map[string]*App, runningApps map[string]*RunningAp
 }
 
 func updateToBeKilled(runningApps map[string]*RunningApp, toBeKilled map[int]time.Time) error {
+	allPids := map[int]bool{}
 	for _, runningApp := range runningApps {
+		allPids[runningApp.Newest.Pid] = true
 		for _, app := range runningApp.Others {
+			allPids[app.Pid] = true
 			if _, ok := toBeKilled[app.Pid]; !ok {
 				toBeKilled[app.Pid] = time.Now().Add(time.Duration(config.KillDelay) * time.Second)
 			}
 		}
 	}
+	for pid := range toBeKilled {
+		if !allPids[pid] {
+			delete(toBeKilled, pid)
+		}
+	}
+	m := map[int]string{}
+	for port, t := range toBeKilled {
+		m[port] = t.Format(time.TimeOnly)
+	}
+	b, _ := json.Marshal(m)
+	log.InfoLog("current toBeKilled: %s", string(b))
 	return nil
 }
 
@@ -144,7 +171,7 @@ func runKillCommand(toBeKilled map[int]time.Time) error {
 	now := time.Now()
 	for pid, t := range toBeKilled {
 		log.InfoLog("check pid=%d time=%s", pid, t.Format(time.TimeOnly))
-		if t.After(now) {
+		if t.Before(now) {
 			log.InfoLog("kill app pid=%d", pid)
 			err := exec.Command("kill", strconv.Itoa(pid)).Run()
 			if err != nil {
@@ -213,6 +240,7 @@ func main() {
 		} else {
 			time.Sleep(time.Second * time.Duration(config.SleepInterval))
 		}
+		log.InfoLog("------%s------", time.Now().Format(time.TimeOnly))
 		if err = runMakeCommand(); err != nil {
 			log.ErrorLog("fail to run make command: %v", err)
 			continue
