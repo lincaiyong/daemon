@@ -1,8 +1,10 @@
 package main
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
+	"github.com/lincaiyong/arg"
 	"github.com/lincaiyong/daemon/internal"
 	"github.com/lincaiyong/log"
 	"os"
@@ -212,7 +214,15 @@ func reloadNginx(runningApps map[string]*RunningApp) error {
 	return nil
 }
 
+//go:embed version
+var version string
+
 func main() {
+	arg.Parse()
+	if arg.BoolArg("version") {
+		fmt.Println(version)
+		return
+	}
 	if err := loadConfig(); err != nil {
 		log.ErrorLog("fail to load config: %v", err)
 		os.Exit(1)

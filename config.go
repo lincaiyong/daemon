@@ -34,7 +34,6 @@ type Config struct {
 }
 
 func loadConfig() error {
-	arg.Parse()
 	// config.json
 	if configFile := arg.KeyValueArg("config", "daemon.json"); configFile != "" {
 		if b, err := os.ReadFile(configFile); err != nil {
