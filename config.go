@@ -21,6 +21,7 @@ type Config struct {
 	BinDir        string
 	AppDir        string
 	SSLDir        string
+	LogDir        string
 	Workers       []string `json:"workers"`
 	WorkerMap     map[string]bool
 	NginxConfDDir string   `json:"nginx_conf_d_dir"`
@@ -69,11 +70,13 @@ func loadConfig() error {
 	}
 	// check
 	if config.RootDir == "" {
-		return errors.New("rootdir is required")
+		config.RootDir, _ = os.Getwd()
 	}
 	config.BinDir = fmt.Sprintf("%s/bin", config.RootDir)
 	config.AppDir = fmt.Sprintf("%s/app", config.RootDir)
 	config.SSLDir = fmt.Sprintf("%s/ssl", config.RootDir)
+	config.LogDir = fmt.Sprintf("%s/log", config.RootDir)
+	_ = os.MkdirAll(config.LogDir, os.ModePerm)
 	config.WorkerMap = make(map[string]bool)
 	for _, worker := range config.Workers {
 		config.WorkerMap[worker] = true
@@ -85,7 +88,7 @@ func loadConfig() error {
 	var err error
 	hasFileErr := false
 	for _, dir := range []string{
-		config.RootDir, config.BinDir, config.AppDir, config.NginxConfDDir, config.NginxConfFile,
+		config.RootDir, config.BinDir, config.AppDir, config.LogDir, config.NginxConfDDir, config.NginxConfFile,
 		path.Join(config.RootDir, "Makefile"),
 	} {
 		if _, err = os.Stat(dir); err != nil {

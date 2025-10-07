@@ -121,7 +121,12 @@ func launchNewApps(binaryApps map[string]*App, runningApps map[string]*RunningAp
 					return err
 				}
 			}
-			cmdName, cmdArgs := internal.CommandNameArgs(fmt.Sprintf("%s/%s", config.BinDir, name), port, binaryApp.ModifiedTime)
+			cmdName, cmdArgs := internal.CommandNameArgs(
+				fmt.Sprintf("%s/%s", config.BinDir, name),
+				port,
+				binaryApp.ModifiedTime,
+				path.Join(config.LogDir, name+".log"),
+			)
 			cmd := exec.Command(cmdName, cmdArgs...)
 			cmd.Dir = fmt.Sprintf("%s/%s", config.AppDir, name)
 			cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}

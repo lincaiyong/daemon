@@ -7,10 +7,11 @@ import (
 	"time"
 )
 
-func CommandNameArgs(binaryFile string, port int, modTime time.Time) (string, []string) {
+func CommandNameArgs(binaryFile string, port int, modTime time.Time, logPath string) (string, []string) {
 	return binaryFile, []string{
 		fmt.Sprintf("--port=%d", port),
 		fmt.Sprintf("--time=%s", timeToBeijingTimeStr(modTime)),
+		fmt.Sprintf("--logpath=%s", logPath),
 	}
 }
 
@@ -18,7 +19,7 @@ var commandLineRegex *regexp.Regexp
 
 func ParseCommandLine(binaryDir, line string) (name string, port int, modTime time.Time, err error) {
 	if commandLineRegex == nil {
-		pattern := fmt.Sprintf(`%s/([a-z]+) --port=(\d+) --time=(\d\d\d\d_\d\d_\d\d_\d\d_\d\d_\d\d)`, binaryDir)
+		pattern := fmt.Sprintf(`%s/([a-z]+) --port=(\d+) --time=(\d\d\d\d_\d\d_\d\d_\d\d_\d\d_\d\d) --logpath=`, binaryDir)
 		commandLineRegex = regexp.MustCompile(pattern)
 	}
 	ret := commandLineRegex.FindStringSubmatch(line)
