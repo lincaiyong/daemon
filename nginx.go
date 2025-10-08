@@ -15,7 +15,7 @@ import (
 func writeServerJson(name string, port int) error {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("location /%s/ {\n\t", name))
-	if config.AuthAppMap[name] {
+	if !config.NoAuthServerMap[name] {
 		authCode := strings.ReplaceAll(`set $token_value $cookie_token;
 	if ($token_value = "") {
 		set $token_value $http_token;
@@ -126,6 +126,7 @@ http {
 		}
 	}
 	var out []byte
+	log.InfoLog("nginx -s reload")
 	out, err = exec.Command("nginx", "-s", "reload").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("fail to exec nginx -s reload: %v, %s", err, string(out))

@@ -106,7 +106,7 @@ func runMakeCommand() error {
 	if err != nil {
 		return err
 	}
-	log.InfoLog("make output: %s", string(out))
+	log.InfoLog("output: %s", string(out))
 	return nil
 }
 
@@ -116,7 +116,7 @@ func launchNewApps(binaryApps map[string]*App, runningApps map[string]*RunningAp
 		if !ok || runningApp.Newest.ModifiedTime.Before(binaryApp.ModifiedTime) {
 			var port int
 			var err error
-			if !config.WorkerMap[name] {
+			if config.ServerMap[name] {
 				port, err = internal.PickUnusedPort()
 				if err != nil {
 					log.ErrorLog("fail to pick unused port: %v", err)
@@ -197,7 +197,7 @@ func reloadNginx(runningApps map[string]*RunningApp) error {
 	needReload := false
 	toReload := make(map[string]int)
 	for name, runningApp := range runningApps {
-		if config.WorkerMap[name] {
+		if !config.ServerMap[name] {
 			continue
 		}
 		if nginxApps[name] != runningApp.Newest.Port {
@@ -221,6 +221,10 @@ func main() {
 	arg.Parse()
 	if arg.BoolArg("version") {
 		fmt.Println(version)
+		return
+	}
+	if arg.BoolArg("init") {
+		doInit()
 		return
 	}
 	if err := loadConfig(); err != nil {
@@ -280,9 +284,11 @@ func main() {
 			log.ErrorLog("fail to run kill: %v", err)
 			continue
 		}
-		if err = reloadNginx(runningApps); err != nil {
-			log.ErrorLog("fail to reload nginx: %v", err)
-			continue
+		if config.EnableNginx {
+			if err = reloadNginx(runningApps); err != nil {
+				log.ErrorLog("fail to reload nginx: %v", err)
+				continue
+			}
 		}
 	}
 }
