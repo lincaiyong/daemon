@@ -17,6 +17,7 @@ var initConfigContent = `{
 var initMakefileContent = `
 .PHONY: all
 all: bin/demo
+	cd app/demo && git pull
 
 bin/demo: $(shell find app/demo -name '*.go')
 	@if [ ! -d "app/demo" ]; then git clone https://github.com/lincaiyong/demo app/demo; fi
