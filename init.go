@@ -16,7 +16,10 @@ var initConfigContent = `{
 
 var initMakefileContent = `
 .PHONY: all
-all: bin/demo
+all: git_pull bin/demo
+
+.PHONY: git_pull
+git_pull:
 	cd app/demo && git pull
 
 bin/demo: $(shell find app/demo -name '*.go')
