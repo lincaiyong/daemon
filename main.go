@@ -100,7 +100,7 @@ func collectBinaryApps() (map[string]*App, error) {
 }
 
 func runMakeCommand() error {
-	_, err := internal.RunCommand(config.RootDir, "make")
+	err := internal.RunCommand(config.RootDir, "make")
 	if err != nil {
 		return err
 	}
