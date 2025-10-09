@@ -11,7 +11,8 @@ var initConfigContent = `{
 	"no_auth_servers": ["demo"],
 	"secret_token": "",
 	"enable_https": false,
-	"domain": "localhost"
+	"domain": "localhost",
+	"env": ["TEST=1"]
 }`
 
 var initMakefileContent = `
@@ -20,7 +21,7 @@ all: git_pull bin/demo
 
 .PHONY: git_pull
 git_pull:
-	cd app/demo && git pull
+	@if [ -d "app/demo" ]; then cd app/demo && git pull; fi
 
 bin/demo: $(shell find app/demo -name '*.go')
 	@if [ ! -d "app/demo" ]; then git clone https://github.com/lincaiyong/demo app/demo; fi

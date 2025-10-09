@@ -131,6 +131,7 @@ func launchNewApps(binaryApps map[string]*App, runningApps map[string]*RunningAp
 			)
 			cmd := exec.Command(cmdName, cmdArgs...)
 			cmd.Dir = fmt.Sprintf("%s/%s", config.AppDir, name)
+			cmd.Env = append(os.Environ(), config.Env...)
 			cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 			log.InfoLog("launch new app \"%s\" on port %d", name, port)
 			if err = cmd.Start(); err != nil {

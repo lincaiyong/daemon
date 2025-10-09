@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/lincaiyong/log"
 	"os"
 	"runtime"
 )
@@ -10,6 +11,7 @@ import (
 var config Config
 
 type Config struct {
+	Env           []string `json:"env"`
 	LogPath       string
 	SleepInterval int
 	KillDelay     int
@@ -35,9 +37,11 @@ type NginxConfig struct {
 }
 
 func loadConfig() error {
+	cwd, _ := os.Getwd()
+	log.InfoLog("cwd: %s", cwd)
 	// daemon.json
 	if b, err := os.ReadFile("daemon.json"); err != nil {
-		return fmt.Errorf("fail to read daemon.json: %v", err)
+		return fmt.Errorf("fail to read %s/daemon.json: %v", cwd, err)
 	} else {
 		err = json.Unmarshal(b, &config)
 		if err != nil {
@@ -48,7 +52,7 @@ func loadConfig() error {
 	config.LogPath = "daemon.log"
 	config.SleepInterval = 10
 	config.KillDelay = 30
-	config.RootDir, _ = os.Getwd()
+	config.RootDir = cwd
 	// nginx default
 	config.NginxConfDDir = "/etc/nginx/conf.d"
 	if runtime.GOOS == "darwin" {
