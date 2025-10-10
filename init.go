@@ -9,6 +9,7 @@ var initConfigContent = `{
 	"servers": ["demo"],
 	"enable_nginx": true,
 	"no_auth_servers": ["demo"],
+	"http_servers": ["demo"],
 	"secret_token": "",
 	"enable_https": false,
 	"domain": "localhost",

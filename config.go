@@ -30,6 +30,8 @@ type NginxConfig struct {
 	NginxConfFile   string
 	NoAuthServers   []string `json:"no_auth_servers"`
 	NoAuthServerMap map[string]bool
+	HttpServers     []string `json:"http_servers"`
+	HttpServerMap   map[string]bool
 	SecretToken     string `json:"secret_token"`
 	EnableHttps     bool   `json:"enable_https"`
 	Domain          string `json:"domain"`
@@ -74,6 +76,10 @@ func loadConfig() error {
 	config.NoAuthServerMap = make(map[string]bool)
 	for _, server := range config.NoAuthServers {
 		config.NoAuthServerMap[server] = true
+	}
+	config.HttpServerMap = make(map[string]bool)
+	for _, server := range config.HttpServers {
+		config.HttpServerMap[server] = true
 	}
 	return nil
 }

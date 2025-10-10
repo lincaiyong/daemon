@@ -76,7 +76,7 @@ func getNginxApps() (map[string]int, error) {
 }
 
 func doReloadNginx(apps map[string]int) error {
-	const template = `user www-data;
+	content := `user www-data;
 worker_processes auto;
 error_log /var/log/nginx/error.log;
 events {
@@ -91,7 +91,17 @@ http {
 	ssl_protocols TLSv1 TLSv1.1 TLSv1.2 TLSv1.3; # Dropping SSLv3, ref: POODLE
 	ssl_prefer_server_ciphers on;
 	access_log /var/log/nginx/access.log;
-	server {
+	<http_server_block>
+	<https_server_block>
+}`
+	httpServerBlock := `server {
+		listen 80;
+		server_name <domain>;
+		client_max_body_size 500M;
+
+		<include_http_conf>
+	}`
+	httpsServerBlock := `server {
 		listen 443 ssl;
 		server_name <domain>;
 		client_max_body_size 500M;
@@ -99,19 +109,34 @@ http {
 		ssl_certificate <ssldir>/<domain>_chain.pem;
 		ssl_certificate_key <ssldir>/<domain>_key.key;
 
-		include <nginxconfd>/*.conf;
+		<include_https_conf>
+	}`
+	includeHttpConfLines := make([]string, 0)
+	includeHttpsConfLines := make([]string, 0)
+	for app := range apps {
+		if config.HttpServerMap[app] || !config.EnableHttps || runtime.GOOS == "darwin" {
+			includeHttpConfLines = append(includeHttpConfLines, fmt.Sprintf("include %s/%s.conf;", config.NginxConfDDir, app))
+		} else {
+			includeHttpsConfLines = append(includeHttpsConfLines, fmt.Sprintf("include %s/%s.conf;", config.NginxConfDDir, app))
+		}
 	}
-}`
-	content := strings.ReplaceAll(template, "<domain>", config.Domain)
-	content = strings.ReplaceAll(content, "<ssldir>", config.SSLDir)
-	content = strings.ReplaceAll(content, "<nginxconfd>", config.NginxConfDDir)
+	if len(includeHttpConfLines) > 0 {
+		httpServerBlock = strings.ReplaceAll(httpServerBlock, "<ssldir>", config.SSLDir)
+		httpServerBlock = strings.ReplaceAll(httpServerBlock, "<include_http_conf>", strings.Join(includeHttpConfLines, "\n\t\t"))
+		content = strings.ReplaceAll(content, "<http_server_block>", httpServerBlock)
+	} else {
+		content = strings.ReplaceAll(content, "<http_server_block>", "")
+	}
+	if len(includeHttpsConfLines) > 0 {
+		httpsServerBlock = strings.ReplaceAll(httpsServerBlock, "<include_https_conf>", strings.Join(includeHttpsConfLines, "\n\t\t"))
+		content = strings.ReplaceAll(content, "<https_server_block>", httpsServerBlock)
+	} else {
+		content = strings.ReplaceAll(content, "<https_server_block>", "")
+	}
+	content = strings.ReplaceAll(content, "<domain>", config.Domain)
 	content = strings.ReplaceAll(content, "<nginxdir>", path.Dir(config.NginxConfFile))
 	if runtime.GOOS == "darwin" {
 		content = strings.ReplaceAll(content, "user www-data;\n", "")
-	}
-	if !config.EnableHttps || runtime.GOOS == "darwin" {
-		content = strings.ReplaceAll(content, "443 ssl", "80")
-		content = strings.ReplaceAll(content, "ssl_", "# ssl_")
 	}
 	err := os.WriteFile(config.NginxConfFile, []byte(content), 0644)
 	if err != nil {
