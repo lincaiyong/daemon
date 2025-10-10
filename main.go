@@ -237,6 +237,7 @@ func main() {
 		log.ErrorLog("fail to set log path: %v", err)
 		os.Exit(1)
 	}
+	log.InfoLog("version: %s", version)
 	log.InfoLog("log path: %v", config.LogPath)
 	wd, _ := os.Getwd()
 	log.InfoLog("work dir: %s", wd)
