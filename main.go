@@ -242,17 +242,17 @@ func main() {
 		log.ErrorLog("fail to set log path: %v", err)
 		os.Exit(1)
 	}
-	log.InfoLog("version: %s", version)
-	log.InfoLog("log path: %v", config.LogPath)
-	wd, _ := os.Getwd()
-	log.InfoLog("work dir: %s", wd)
-	log.InfoLog("pid: %d", os.Getpid())
-
 	if err := processlock.Lock(config.LogPath); err != nil {
 		log.ErrorLog("fail to acquire process lock: %v", err)
 		os.Exit(1)
 	}
 	defer processlock.Unlock()
+
+	log.InfoLog("version: %s", version)
+	log.InfoLog("log path: %v", config.LogPath)
+	wd, _ := os.Getwd()
+	log.InfoLog("work dir: %s", wd)
+	log.InfoLog("pid: %d", os.Getpid())
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
