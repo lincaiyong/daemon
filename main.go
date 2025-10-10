@@ -7,6 +7,7 @@ import (
 	"github.com/lincaiyong/arg"
 	"github.com/lincaiyong/daemon/internal"
 	"github.com/lincaiyong/log"
+	"github.com/lincaiyong/processlock"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -242,6 +243,12 @@ func main() {
 	wd, _ := os.Getwd()
 	log.InfoLog("work dir: %s", wd)
 	log.InfoLog("pid: %d", os.Getpid())
+
+	if err := processlock.Lock(config.LogPath); err != nil {
+		log.ErrorLog("fail to acquire process lock: %v", err)
+		os.Exit(1)
+	}
+	defer processlock.Unlock()
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
