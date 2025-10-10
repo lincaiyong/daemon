@@ -121,13 +121,13 @@ http {
 		}
 	}
 	if len(includeHttpConfLines) > 0 {
-		httpsServerBlock = strings.ReplaceAll(httpsServerBlock, "<ssldir>", config.SSLDir)
 		httpServerBlock = strings.ReplaceAll(httpServerBlock, "<include_http_conf>", strings.Join(includeHttpConfLines, "\n\t\t"))
 		content = strings.ReplaceAll(content, "<http_server_block>", httpServerBlock)
 	} else {
 		content = strings.ReplaceAll(content, "<http_server_block>", "")
 	}
 	if len(includeHttpsConfLines) > 0 {
+		httpsServerBlock = strings.ReplaceAll(httpsServerBlock, "<ssldir>", config.SSLDir)
 		httpsServerBlock = strings.ReplaceAll(httpsServerBlock, "<include_https_conf>", strings.Join(includeHttpsConfLines, "\n\t\t"))
 		content = strings.ReplaceAll(content, "<https_server_block>", httpsServerBlock)
 	} else {
