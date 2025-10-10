@@ -230,6 +230,10 @@ func main() {
 		doInit()
 		return
 	}
+	if arg.BoolArg("kill") {
+		doKill()
+		return
+	}
 	if err := loadConfig(); err != nil {
 		log.ErrorLog("fail to load config: %v", err)
 		os.Exit(1)
