@@ -15,12 +15,12 @@ func doKill() {
 		os.Exit(1)
 	}
 	content := string(b)
-	results := regexp.MustCompile(`\[INFO ] pid: (\d+)`).FindStringSubmatch(content)
+	results := regexp.MustCompile(`\[INFO ] pid: (\d+)`).FindAllStringSubmatch(content, -1)
 	if len(results) == 0 {
 		fmt.Printf("no pid found in %s\n", logPath)
 		os.Exit(0)
 	}
-	pid := results[len(results)-1]
+	pid := results[len(results)-1][1]
 	out, err := exec.Command("kill", pid).CombinedOutput()
 	if err != nil {
 		fmt.Printf("fail to kill: %v, %s", err, string(out))
