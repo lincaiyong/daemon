@@ -254,11 +254,15 @@ func main() {
 	log.InfoLog("work dir: %s", wd)
 	log.InfoLog("pid: %d", os.Getpid())
 
+	shutdown := make(chan bool, 1)
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sigs
-		log.InfoLog("receive quit signal, quit")
+		log.InfoLog("receive quit signal, quit...")
+		shutdown <- true
+		time.Sleep(time.Minute)
+		log.InfoLog("wait timeout, quit")
 		os.Exit(0)
 	}()
 
@@ -271,7 +275,19 @@ func main() {
 		if first {
 			first = false
 		} else {
-			time.Sleep(time.Second * time.Duration(config.SleepInterval))
+			for i := 0; i < config.SleepInterval; i++ {
+				select {
+				case <-shutdown:
+					log.InfoLog("shutdown")
+					os.Exit(0)
+				default:
+					time.Sleep(time.Second)
+				}
+			}
+			if err = loadConfig(); err != nil {
+				log.ErrorLog("fail to load config: %v", err)
+				continue
+			}
 		}
 		log.InfoLog("------%s------", time.Now().Format(time.TimeOnly))
 		if err = runMakeCommand(); err != nil {
