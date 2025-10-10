@@ -121,7 +121,7 @@ http {
 		}
 	}
 	if len(includeHttpConfLines) > 0 {
-		httpServerBlock = strings.ReplaceAll(httpServerBlock, "<ssldir>", config.SSLDir)
+		httpsServerBlock = strings.ReplaceAll(httpsServerBlock, "<ssldir>", config.SSLDir)
 		httpServerBlock = strings.ReplaceAll(httpServerBlock, "<include_http_conf>", strings.Join(includeHttpConfLines, "\n\t\t"))
 		content = strings.ReplaceAll(content, "<http_server_block>", httpServerBlock)
 	} else {
