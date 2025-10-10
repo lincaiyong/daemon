@@ -151,7 +151,11 @@ func updateToBeKilled(runningApps map[string]*RunningApp, toBeKilled map[int]tim
 		for _, app := range runningApp.Others {
 			allPids[app.Pid] = true
 			if _, ok := toBeKilled[app.Pid]; !ok {
-				toBeKilled[app.Pid] = time.Now().Add(time.Duration(config.KillDelay) * time.Second)
+				if config.ServerMap[app.Name] {
+					toBeKilled[app.Pid] = time.Now().Add(time.Duration(config.KillDelay) * time.Second)
+				} else {
+					toBeKilled[app.Pid] = time.Now()
+				}
 			}
 		}
 	}
