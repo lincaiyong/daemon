@@ -1,4 +1,4 @@
-package app
+package common
 
 import (
 	"fmt"
@@ -33,7 +33,10 @@ func startup(
 	wd, _ := os.Getwd()
 	log.InfoLog("work dir: %s", wd)
 
-	keys := strings.Split(requiredEnvs, ",")
+	var keys []string
+	if requiredEnvs != "" {
+		keys = strings.Split(requiredEnvs, ",")
+	}
 	envs := make([]string, len(keys))
 	for i, key := range keys {
 		value := os.Getenv(key)

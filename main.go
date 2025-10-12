@@ -5,18 +5,82 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/lincaiyong/arg"
+	"github.com/lincaiyong/daemon/common"
 	"github.com/lincaiyong/daemon/internal"
 	"github.com/lincaiyong/log"
-	"github.com/lincaiyong/processlock"
 	"os"
 	"os/exec"
-	"os/signal"
 	"path"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
 )
+
+//go:embed version
+var version string
+
+func main() {
+	runningApps := map[string]*RunningApp{}
+	binaryApps := map[string]*App{}
+	toBeKilled := map[int]time.Time{}
+	common.StartWorker(
+		"daemon",
+		version,
+		"",
+		func(i []string) error {
+			if arg.BoolArg("init") {
+				doInit()
+				os.Exit(0)
+			}
+			if arg.BoolArg("kill") {
+				doKill()
+				os.Exit(0)
+			}
+			if err := loadConfig(); err != nil {
+				return err
+			}
+			return nil
+		},
+		func() {
+			var err error
+			if err = loadConfig(); err != nil {
+				log.ErrorLog("fail to load config: %v", err)
+				return
+			}
+			if err = runMakeCommand(); err != nil {
+				log.ErrorLog("fail to run make command: %v", err)
+				return
+			}
+			if binaryApps, err = collectBinaryApps(); err != nil {
+				log.ErrorLog("fail to collect binary apps: %v", err)
+				return
+			}
+			if runningApps, err = collectRunningApps(); err != nil {
+				log.ErrorLog("fail to collect running apps: %v", err)
+				return
+			}
+			if err = launchNewApps(binaryApps, runningApps); err != nil {
+				log.ErrorLog("fail to launch new apps: %v", err)
+				return
+			}
+			if err = updateToBeKilled(runningApps, toBeKilled); err != nil {
+				log.ErrorLog("fail to clean old apps: %v", err)
+				return
+			}
+			if err = runKillCommand(toBeKilled); err != nil {
+				log.ErrorLog("fail to run kill: %v", err)
+				return
+			}
+			if config.EnableNginx {
+				if err = reloadNginx(runningApps); err != nil {
+					log.ErrorLog("fail to reload nginx: %v", err)
+					return
+				}
+			}
+		},
+	)
+}
 
 func updateRunningApps(runningApps map[string]*RunningApp, name string, pid, port int, modifiedTime time.Time) {
 	app := App{
@@ -215,110 +279,4 @@ func reloadNginx(runningApps map[string]*RunningApp) error {
 		}
 	}
 	return nil
-}
-
-//go:embed version
-var version string
-
-func main() {
-	arg.Parse()
-	if arg.BoolArg("version") {
-		fmt.Println(version)
-		return
-	}
-	if arg.BoolArg("init") {
-		doInit()
-		return
-	}
-	if arg.BoolArg("kill") {
-		doKill()
-		return
-	}
-	if err := loadConfig(); err != nil {
-		log.ErrorLog("fail to load config: %v", err)
-		os.Exit(1)
-	}
-	if err := log.SetLogPath(config.LogPath); err != nil {
-		log.ErrorLog("fail to set log path: %v", err)
-		os.Exit(1)
-	}
-	if err := processlock.Lock(config.LogPath); err != nil {
-		log.ErrorLog("fail to acquire process lock: %v", err)
-		os.Exit(1)
-	}
-	defer processlock.Unlock()
-
-	log.InfoLog("version: %s", version)
-	log.InfoLog("log path: %v", config.LogPath)
-	wd, _ := os.Getwd()
-	log.InfoLog("work dir: %s", wd)
-	log.InfoLog("pid: %d", os.Getpid())
-
-	shutdown := make(chan bool, 1)
-	sigs := make(chan os.Signal, 1)
-	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		<-sigs
-		log.InfoLog("receive quit signal, quit...")
-		shutdown <- true
-		time.Sleep(time.Minute)
-		log.InfoLog("wait timeout, quit")
-		os.Exit(0)
-	}()
-
-	runningApps := map[string]*RunningApp{}
-	binaryApps := map[string]*App{}
-	toBeKilled := map[int]time.Time{}
-	var err error
-	first := true
-	for {
-		if first {
-			first = false
-		} else {
-			for i := 0; i < config.SleepInterval; i++ {
-				select {
-				case <-shutdown:
-					log.InfoLog("shutdown")
-					os.Exit(0)
-				default:
-					time.Sleep(time.Second)
-				}
-			}
-			if err = loadConfig(); err != nil {
-				log.ErrorLog("fail to load config: %v", err)
-				continue
-			}
-		}
-		log.InfoLog("------%s------", time.Now().Format(time.TimeOnly))
-		if err = runMakeCommand(); err != nil {
-			log.ErrorLog("fail to run make command: %v", err)
-			continue
-		}
-		if binaryApps, err = collectBinaryApps(); err != nil {
-			log.ErrorLog("fail to collect binary apps: %v", err)
-			continue
-		}
-		if runningApps, err = collectRunningApps(); err != nil {
-			log.ErrorLog("fail to collect running apps: %v", err)
-			continue
-		}
-		if err = launchNewApps(binaryApps, runningApps); err != nil {
-			log.ErrorLog("fail to launch new apps: %v", err)
-			continue
-		}
-		if err = updateToBeKilled(runningApps, toBeKilled); err != nil {
-			log.ErrorLog("fail to clean old apps: %v", err)
-			continue
-		}
-		if err = runKillCommand(toBeKilled); err != nil {
-			log.ErrorLog("fail to run kill: %v", err)
-			continue
-		}
-		if config.EnableNginx {
-			if err = reloadNginx(runningApps); err != nil {
-				log.ErrorLog("fail to reload nginx: %v", err)
-				continue
-			}
-		}
-	}
 }
