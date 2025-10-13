@@ -1,0 +1,9 @@
+{
+	"servers": ["demo"],
+	"enable_nginx": true,
+	"no_auth_servers": ["demo"],
+	"secret_token": "",
+	"enable_https": false,
+	"domain": "localhost",
+	"env": ["TEST=1"]
+}

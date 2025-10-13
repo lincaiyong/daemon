@@ -20,7 +20,7 @@ func SetInterval(i int) {
 func StartWorker(
 	name, version, requiredEnvs string,
 	initFunc func([]string) error,
-	worker func(),
+	worker func(context.Context),
 ) {
 	initFuncWrap := func(envs []string, _ *gin.RouterGroup) error {
 		return initFunc(envs)
@@ -52,7 +52,7 @@ func StartWorker(
 				}
 			}
 			log.InfoLog("------%s------", time.Now().Format(time.TimeOnly))
-			worker()
+			worker(ctx)
 		}
 	}()
 	sigs := make(chan os.Signal, 1)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -42,7 +43,7 @@ func main() {
 			}
 			return nil
 		},
-		func() {
+		func(ctx context.Context) {
 			var err error
 			if err = loadConfig(); err != nil {
 				log.ErrorLog("fail to load config: %v", err)
