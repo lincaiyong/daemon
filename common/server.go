@@ -25,6 +25,13 @@ func StartServer(
 		c.Next()
 		log.InfoLog(" %s | %s | %v | %d", c.Request.URL.Path, c.ClientIP(), time.Since(start), c.Writer.Status())
 	})
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status":  "ok",
+			"version": version,
+			"time":    time.Now().Format(time.RFC3339),
+		})
+	})
 	_, port := startup(name, version, requiredEnvs, initFunc, &router.RouterGroup)
 	server := &http.Server{Addr: fmt.Sprintf("127.0.0.1:%s", port), Handler: router}
 	go func() {
