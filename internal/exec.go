@@ -2,6 +2,7 @@ package internal
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"github.com/lincaiyong/log"
 	"os/exec"
@@ -9,9 +10,9 @@ import (
 	"sync"
 )
 
-func RunCommand(workDir, cmdName string, cmdArgs ...string) error {
+func RunCommand(ctx context.Context, workDir, cmdName string, cmdArgs ...string) error {
 	log.InfoLog("run command: %s %s", cmdName, strings.Join(cmdArgs, " "))
-	cmd := exec.Command(cmdName, cmdArgs...)
+	cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
 	cmd.Dir = workDir
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {

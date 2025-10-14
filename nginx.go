@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/lincaiyong/log"
 	"os"
@@ -75,7 +76,7 @@ func getNginxApps() (map[string]int, error) {
 	return result, nil
 }
 
-func doReloadNginx(apps map[string]int) error {
+func doReloadNginx(ctx context.Context, apps map[string]int) error {
 	content := `user www-data;
 worker_processes auto;
 error_log /var/log/nginx/error.log;
@@ -152,13 +153,13 @@ http {
 	}
 	var out []byte
 	log.InfoLog("nginx -s reload")
-	out, err = exec.Command("nginx", "-s", "reload").CombinedOutput()
+	out, err = exec.CommandContext(ctx, "nginx", "-s", "reload").CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("fail to exec nginx -s reload: %v, %s", err, string(out))
 	}
 	if runtime.GOOS != "darwin" {
 		var output []byte
-		output, err = exec.Command("systemctl", "status", "nginx").CombinedOutput()
+		output, err = exec.CommandContext(ctx, "systemctl", "status", "nginx").CombinedOutput()
 		if err != nil {
 			return fmt.Errorf("fail to systemctl status nginx: %v, %s", err, string(output))
 		}

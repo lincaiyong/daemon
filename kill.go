@@ -1,13 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"regexp"
 )
 
-func doKill() {
+func doKill(ctx context.Context) {
 	logPath := "daemon.log"
 	b, err := os.ReadFile(logPath)
 	if err != nil {
@@ -21,7 +22,7 @@ func doKill() {
 		os.Exit(0)
 	}
 	pid := results[len(results)-1][1]
-	out, err := exec.Command("kill", pid).CombinedOutput()
+	out, err := exec.CommandContext(ctx, "kill", pid).CombinedOutput()
 	if err != nil {
 		fmt.Printf("fail to kill: %v, %s", err, string(out))
 		os.Exit(1)

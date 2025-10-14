@@ -35,7 +35,7 @@ func main() {
 				os.Exit(0)
 			}
 			if arg.BoolArg("kill") {
-				doKill()
+				doKill(context.Background())
 				os.Exit(0)
 			}
 			if err := loadConfig(); err != nil {
@@ -49,7 +49,7 @@ func main() {
 				log.ErrorLog("fail to load config: %v", err)
 				return
 			}
-			if err = runMakeCommand(); err != nil {
+			if err = runMakeCommand(ctx); err != nil {
 				log.ErrorLog("fail to run make command: %v", err)
 				return
 			}
@@ -57,11 +57,11 @@ func main() {
 				log.ErrorLog("fail to collect binary apps: %v", err)
 				return
 			}
-			if runningApps, err = collectRunningApps(); err != nil {
+			if runningApps, err = collectRunningApps(ctx); err != nil {
 				log.ErrorLog("fail to collect running apps: %v", err)
 				return
 			}
-			if err = launchNewApps(binaryApps, runningApps); err != nil {
+			if err = launchNewApps(ctx, binaryApps, runningApps); err != nil {
 				log.ErrorLog("fail to launch new apps: %v", err)
 				return
 			}
@@ -69,12 +69,12 @@ func main() {
 				log.ErrorLog("fail to clean old apps: %v", err)
 				return
 			}
-			if err = runKillCommand(toBeKilled); err != nil {
+			if err = runKillCommand(ctx, toBeKilled); err != nil {
 				log.ErrorLog("fail to run kill: %v", err)
 				return
 			}
 			if config.EnableNginx {
-				if err = reloadNginx(runningApps); err != nil {
+				if err = reloadNginx(ctx, runningApps); err != nil {
 					log.ErrorLog("fail to reload nginx: %v", err)
 					return
 				}
@@ -100,8 +100,8 @@ func updateRunningApps(runningApps map[string]*RunningApp, name string, pid, por
 	}
 }
 
-func collectRunningApps() (map[string]*RunningApp, error) {
-	output, err := exec.Command("ps", "aux").Output()
+func collectRunningApps(ctx context.Context) (map[string]*RunningApp, error) {
+	output, err := exec.CommandContext(ctx, "ps", "aux").Output()
 	if err != nil {
 		return nil, err
 	}
@@ -165,15 +165,15 @@ func collectBinaryApps() (map[string]*App, error) {
 	return result, nil
 }
 
-func runMakeCommand() error {
-	err := internal.RunCommand(config.RootDir, "make")
+func runMakeCommand(ctx context.Context) error {
+	err := internal.RunCommand(ctx, config.RootDir, "make")
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func launchNewApps(binaryApps map[string]*App, runningApps map[string]*RunningApp) error {
+func launchNewApps(ctx context.Context, binaryApps map[string]*App, runningApps map[string]*RunningApp) error {
 	for name, binaryApp := range binaryApps {
 		runningApp, ok := runningApps[name]
 		if !ok || runningApp.Newest.ModifiedTime.Before(binaryApp.ModifiedTime) {
@@ -192,7 +192,7 @@ func launchNewApps(binaryApps map[string]*App, runningApps map[string]*RunningAp
 				binaryApp.ModifiedTime,
 				path.Join(config.LogDir, name+".log"),
 			)
-			cmd := exec.Command(cmdName, cmdArgs...)
+			cmd := exec.CommandContext(ctx, cmdName, cmdArgs...)
 			cmd.Dir = fmt.Sprintf("%s/%s", config.AppDir, name)
 			cmd.Env = append(os.Environ(), config.Env...)
 			cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
@@ -239,7 +239,7 @@ func updateToBeKilled(runningApps map[string]*RunningApp, toBeKilled map[int]tim
 	return nil
 }
 
-func runKillCommand(toBeKilled map[int]time.Time) error {
+func runKillCommand(ctx context.Context, toBeKilled map[int]time.Time) error {
 	if len(toBeKilled) == 0 {
 		return nil
 	}
@@ -248,7 +248,7 @@ func runKillCommand(toBeKilled map[int]time.Time) error {
 		log.InfoLog("check pid=%d time=%s", pid, t.Format(time.TimeOnly))
 		if t.Before(now) {
 			log.InfoLog("kill app pid=%d", pid)
-			err := exec.Command("kill", strconv.Itoa(pid)).Run()
+			err := exec.CommandContext(ctx, "kill", strconv.Itoa(pid)).Run()
 			if err != nil {
 				log.WarnLog("fail to exec command pid=%d: %v", pid, err)
 			}
@@ -257,7 +257,7 @@ func runKillCommand(toBeKilled map[int]time.Time) error {
 	return nil
 }
 
-func reloadNginx(runningApps map[string]*RunningApp) error {
+func reloadNginx(ctx context.Context, runningApps map[string]*RunningApp) error {
 	nginxApps, err := getNginxApps()
 	if err != nil {
 		return err
@@ -274,7 +274,7 @@ func reloadNginx(runningApps map[string]*RunningApp) error {
 		toReload[name] = runningApp.Newest.Port
 	}
 	if needReload {
-		err = doReloadNginx(toReload)
+		err = doReloadNginx(ctx, toReload)
 		if err != nil {
 			return err
 		}
